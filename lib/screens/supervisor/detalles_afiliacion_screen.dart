@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../styles/app_colors.dart';
 
 class DetallesAfiliacionScreen extends StatefulWidget {
@@ -118,6 +121,125 @@ class _DetallesAfiliacionScreenState extends State<DetallesAfiliacionScreen> {
     }
   }
 
+  Future<void> _descargarDocumento(String urlDocumento) async {
+    try {
+      // Solicitar permisos de almacenamiento según la versión de Android
+      if (Platform.isAndroid) {
+        PermissionStatus status;
+        
+        // Para Android 13+ (API 33+), usar permisos específicos de fotos/videos/audio
+        // Para Android 10-12 (API 29-32), usar storage
+        // Para Android 9 y anteriores, usar storage
+        if (await Permission.manageExternalStorage.isGranted) {
+          status = PermissionStatus.granted;
+        } else {
+          // Intentar solicitar manageExternalStorage primero (Android 11+)
+          status = await Permission.manageExternalStorage.request();
+          
+          // Si no se concede, intentar con storage normal
+          if (!status.isGranted) {
+            status = await Permission.storage.request();
+          }
+        }
+        
+        if (!status.isGranted) {
+          Fluttertoast.showToast(
+            msg: 'Se requiere permiso de almacenamiento para descargar',
+            backgroundColor: Colors.redAccent,
+            toastLength: Toast.LENGTH_LONG,
+          );
+          
+          // Mostrar diálogo explicativo
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Permiso requerido'),
+                content: const Text(
+                  'Para descargar documentos, necesitamos acceso al almacenamiento de tu dispositivo. '
+                  'Por favor, concede el permiso en la configuración.'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      openAppSettings();
+                    },
+                    child: const Text('Abrir configuración'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Obtener el directorio de descargas
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download/Docs_AppGrupoProteger');
+      } else if (Platform.isIOS) {
+        downloadsDir = await getApplicationDocumentsDirectory();
+        downloadsDir = Directory('${downloadsDir.path}/Docs_AppGrupoProteger');
+      }
+
+      if (downloadsDir == null) {
+        Fluttertoast.showToast(
+          msg: 'No se pudo acceder al directorio de descargas',
+          backgroundColor: Colors.redAccent,
+        );
+        return;
+      }
+
+      // Crear el directorio si no existe
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      // Generar nombre de archivo único
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'documento_$timestamp.pdf';
+      final filePath = '${downloadsDir.path}/$fileName';
+
+      // Mostrar toast de inicio de descarga
+      Fluttertoast.showToast(
+        msg: 'Descargando documento...',
+        backgroundColor: AppColors.primary,
+      );
+
+      // Descargar el archivo
+      final dio = Dio();
+      await dio.download(
+        urlDocumento,
+        filePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            final progress = (received / total * 100).toStringAsFixed(0);
+            debugPrint('Descarga: $progress%');
+          }
+        },
+      );
+
+      Fluttertoast.showToast(
+        msg: 'Documento descargado en: Downloads/Docs_AppGrupoProteger/$fileName',
+        backgroundColor: Colors.green,
+        toastLength: Toast.LENGTH_LONG,
+      );
+    } catch (e) {
+      debugPrint('Error al descargar documento: $e');
+      Fluttertoast.showToast(
+        msg: 'Error al descargar el documento: ${e.toString()}',
+        backgroundColor: Colors.redAccent,
+        toastLength: Toast.LENGTH_LONG,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final afiliacion = widget.afiliacion;
@@ -199,26 +321,9 @@ class _DetallesAfiliacionScreenState extends State<DetallesAfiliacionScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              icon: const Icon(Icons.picture_as_pdf),
-              label: const Text('Ver documento'),
-              onPressed: () async {
-                try {
-                  final urlString = afiliacion['copia_cedula'];
-                  final url = Uri.parse(urlString);
-
-                  // Abrir en navegador externo
-                  final launched = await launchUrl(
-                    url,
-                    mode: LaunchMode.externalApplication,
-                  );
-
-                  if (!launched) {
-                    Fluttertoast.showToast(msg: 'No se pudo abrir el documento');
-                  }
-                } catch (e) {
-                  Fluttertoast.showToast(msg: 'Error al abrir el documento');
-                }
-              },
+              icon: const Icon(Icons.download),
+              label: const Text('Descargar documento'),
+              onPressed: () => _descargarDocumento(afiliacion['copia_cedula']),
             ),
         ],
       ),

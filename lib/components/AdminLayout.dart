@@ -6,6 +6,7 @@ import '../../styles/app_colors.dart';
 import 'package:afiliateya/screens/admin/admin_settings.dart';
 import 'package:afiliateya/screens/admin/admin_profile.dart';
 import 'package:afiliateya/screens/admin/admin_analytics.dart';
+import 'package:afiliateya/screens/admin/admin_afiliaciones_screen.dart';
 
 class AdminLayout extends StatefulWidget {
   final Widget child;
@@ -43,9 +44,9 @@ class _AdminLayoutState extends State<AdminLayout> with TickerProviderStateMixin
       'activeIcon': Icons.people_rounded,
     },
     {
-      'icon': Icons.person_outline_rounded,
-      'label': 'Perfil',
-      'activeIcon': Icons.person_rounded,
+      'icon': Icons.assignment_outlined,
+      'label': 'Afiliaciones',
+      'activeIcon': Icons.assignment_rounded,
     },
   ];
 
@@ -118,7 +119,7 @@ class _AdminLayoutState extends State<AdminLayout> with TickerProviderStateMixin
       case 2:
         return const AdminProfilesScreen();
       case 3:
-        return const AdminProfile(); // Perfil
+        return const AdminAfiliacionesScreen(); // Afiliaciones
       default:
         return widget.child;
     }

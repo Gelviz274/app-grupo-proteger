@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../styles/app_colors.dart';
 import 'ChangePasswordScreen.dart'; // ✅ Import agregado
+import 'admin_profile.dart'; // ✅ Import agregado para perfil
 
 class AdminSettings extends StatefulWidget {
   const AdminSettings({super.key});
@@ -652,6 +653,20 @@ class _AdminSettingsState extends State<AdminSettings> {
                 ),
               ),
               const SizedBox(height: 8),
+
+              // ✅ NUEVO: Botón para ver perfil
+              _buildActionItem(
+                title: 'Mi Perfil',
+                subtitle: 'Ver y editar información del perfil',
+                icon: Icons.person_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminProfile()),
+                  );
+                },
+                color: AppColors.primary,
+              ),
 
               // ✅ ACTUALIZADO: Ahora usa la nueva función _changePassword
               _buildActionItem(

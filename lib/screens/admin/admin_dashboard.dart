@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../services/supabase_client.dart';
 import '../../styles/app_colors.dart';
 import 'package:afiliateya/components/AdminLayout.dart';
+import '../supervisor/detalles_afiliacion_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -152,7 +153,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
     try {
       final res = await _supabase
           .from('historial_afiliacion')
-          .select('id, fecha_cambio, estado_anterior, estado_nuevo, comentario, cambiado_por(id, nombres, apellidos)')
+          .select('id, afiliacion_id, fecha_cambio, estado_anterior, estado_nuevo, comentario, cambiado_por(id, nombres, apellidos)')
           .order('fecha_cambio', ascending: false)
           .limit(6);
       debugPrint('  historial_afiliacion response type: ${res.runtimeType}');
@@ -164,6 +165,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
         final actor = cambiadoPor != null ? '${cambiadoPor['nombres'] ?? ''} ${cambiadoPor['apellidos'] ?? ''}'.trim() : 'Sistema';
         return {
           'id': r['id'],
+          'afiliacion_id': r['afiliacion_id'],
           'fecha_cambio': r['fecha_cambio'],
           'estado_anterior': r['estado_anterior'],
           'estado_nuevo': r['estado_nuevo'],
@@ -758,6 +760,29 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                 final fechaStr = fecha != null ? _formatDateTime(fecha) : '';
 
                 return ListTile(
+                  onTap: () async {
+                    if (r['afiliacion_id'] != null) {
+                      try {
+                        final afiliacion = await supabase
+                            .from('Afiliaciones')
+                            .select()
+                            .eq('id', r['afiliacion_id'])
+                            .single();
+                        
+                        if (mounted) {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetallesAfiliacionScreen(afiliacion: afiliacion),
+                            ),
+                          );
+                          _loadAll();
+                        }
+                      } catch (e) {
+                        debugPrint('Error al cargar afiliación: $e');
+                      }
+                    }
+                  },
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   leading: Container(
                     padding: const EdgeInsets.all(10),

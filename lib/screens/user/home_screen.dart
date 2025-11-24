@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/supabase_client.dart';
 import '../../styles/app_colors.dart';
 import '../auth/login_screen.dart';
@@ -146,6 +147,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Colors.grey.shade600;
   }
 
+  /// Abre WhatsApp con un mensaje predefinido
+  Future<void> _contactarWhatsApp() async {
+    const phoneNumber = '+573123332729';
+    const message = 'Quiero solicitar información';
+    final url = Uri.parse('https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}');
+    
+    try {
+      final canLaunch = await canLaunchUrl(url);
+      if (canLaunch) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        Fluttertoast.showToast(
+          msg: 'No se pudo abrir WhatsApp',
+          backgroundColor: Colors.redAccent,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Error al abrir WhatsApp',
+        backgroundColor: Colors.redAccent,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Mostrar indicador de carga mientras se obtienen datos
@@ -170,6 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(), // Encabezado de bienvenida
+              const SizedBox(height: 16),
+              _buildWhatsAppButton(), // Botón de WhatsApp
               const SizedBox(height: 25),
               _buildUserCard(), // Tarjeta con información del usuario
               const SizedBox(height: 30),
@@ -240,6 +267,51 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Botón de contacto por WhatsApp
+  Widget _buildWhatsAppButton() {
+    return InkWell(
+      onTap: _contactarWhatsApp,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF25D366), Color(0xFF128C7E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF25D366).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.messenger,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Contactar por WhatsApp',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
